@@ -80,8 +80,9 @@ def detect_frames(video: Path, frames_dir: Path, scene: float) -> list:
     times = [float(m) for m in re.findall(r"pts_time:([0-9]+\.?[0-9]*)", p.stderr)]
     files = sorted(frames_dir.glob("f*.jpg"))
     if len(times) != len(files):
-        # showinfo lines should match written frames 1:1; trust file order, pad if needed
-        times = times[:len(files)]
+        die(f"ffmpeg wrote {len(files)} frames but showinfo reported {len(times)} timestamps — "
+            f"frame-to-timestamp alignment cannot be trusted, so slide citations would be wrong. "
+            f"Try a different --scene value, or report this with the video URL.")
     return list(zip(files, times))
 
 

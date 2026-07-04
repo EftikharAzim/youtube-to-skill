@@ -1,0 +1,9 @@
+{
+  "events": [
+    {"tStartMs": 0, "dDurationMs": 2000, "segs": [{"utf8": "hello world"}]},
+    {"tStartMs": 2500, "segs": [{"utf8": " this is"}, {"utf8": " a  test"}]},
+    {"tStartMs": 3000, "segs": [{"utf8": "\n"}]},
+    {"tStartMs": 9000, "segs": [{"utf8": "after a gap"}]},
+    {"tStartMs": 10000}
+  ]
+}

@@ -1,0 +1,34 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: FedericoCarboni/setup-ffmpeg@v3
+      - run: pip install yt-dlp
+      - run: python scripts/fetch_transcript.py --check
+      - run: python scripts/extract_frames.py --check
+      - run: python tests/test_parse.py
+
+  # Scripts themselves claim Python 3.8+ (yt-dlp/ffmpeg are external binaries,
+  # so only the parser tests run here).
+  oldest-python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.8"
+      - run: python tests/test_parse.py
