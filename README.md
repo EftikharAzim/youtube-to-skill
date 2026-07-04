@@ -118,6 +118,12 @@ Useful flags: `--lang` (caption language), `--max-videos` (playlist cap, default
 - **Visuals cost tokens.** The visual pass reads each frame as an image (~1.2K tokens per frame, typically 30–60 frames per talk). It is opt-in and priced in the pre-flight estimate.
 - **Slide legibility depends on the source.** Full-screen slides and screencasts read cleanly at 720p; small picture-in-picture slide insets in older webcasts may not.
 - **yt-dlp decays.** YouTube changes break it periodically; keep it updated.
+- **Scale.** Single talks and courses up to ~25 videos convert in one session (the playlist cap defaults to 25; raise with `--max-videos`). Longer playlists work in batches via the update mode, but fetching captions for very many videos in one run may hit YouTube rate limiting, and generation cost grows linearly with runtime — roughly 12–15K tokens of transcript per hour of speech before generation overhead.
+- **Format matters.** Structured material (lectures, conference talks, courses) extracts well. Conversational content — podcasts, interviews, vlogs — yields thin skills, because there is little named structure to extract. Private, members-only, and age-restricted videos are not supported.
+
+## Responsible use
+
+This tool fetches captions and (optionally) video streams from YouTube, which YouTube's Terms of Service restrict; use it for personal study and research, and be aware that heavy use may get your IP rate-limited. Generated skills are derivative works of the source video — keep them private unless the video's license (e.g. Creative Commons) permits redistribution, and credit the speaker either way. You are responsible for how you use this tool.
 
 ## Credits
 
