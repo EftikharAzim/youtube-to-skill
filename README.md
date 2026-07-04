@@ -4,6 +4,14 @@ A [Claude Code](https://claude.com/claude-code) skill that turns YouTube videos 
 
 It fetches transcripts with yt-dlp (manual subtitles preferred, auto-captions as fallback), maps YouTube chapter markers to sections, and optionally extracts slide keyframes with ffmpeg so the agent can read on-screen code, tables, and diagrams that never appear in a transcript.
 
+## Why
+
+A conference talk or lecture series you watched last month is gone from working memory. Any chat assistant can summarize a video on demand, but a summary is ephemeral prose — you re-read it top to bottom, and it dies in the chat history. A skill is a file your coding agent loads on demand while you work: ask about one concept and it pulls the one chapter that covers it, cites the timestamp where the speaker said it, and links you to that exact second of the video. A twelve-lecture course costs you one chapter per question, not the whole course.
+
+Transcripts alone also lose whatever was on screen. The optional visual pass reads slide keyframes, so the code, tables, and diagrams a speaker showed — but never spoke aloud — end up in the chapters too.
+
+Convert a playlist once; from then on your agent answers from it, with sources.
+
 ## What it produces
 
 A skill in the same shape as [book-to-skill](https://github.com/virgiliojr94/book-to-skill) output, so book-derived and video-derived knowledge bases read identically:
@@ -19,7 +27,7 @@ yt-speaker-topic/
 
 Every extracted claim carries the timestamp where the speaker states it, and each chapter links to `<url>&t=<seconds>s` so you can jump to the source moment.
 
-## Modes
+## Usage
 
 | You say | What happens |
 |---|---|
@@ -30,7 +38,7 @@ Every extracted claim carries the timestamp where the speaker states it, and eac
 | `/youtube-to-skill <playlist-url> my-slug` | Same, each playlist video becomes one chapter. |
 | "Add this video to yt-my-course: \<url\>" | Appends new chapters to an existing generated skill. |
 
-Conversion always shows a token-cost estimate and waits for confirmation before generating anything.
+Conversion always shows a token-cost estimate and waits for confirmation before generating anything. After a conversion, restart Claude Code to load the new skill.
 
 ## Requirements
 
@@ -39,22 +47,53 @@ Conversion always shows a token-cost estimate and waits for confirmation before 
 - [yt-dlp](https://github.com/yt-dlp/yt-dlp) — transcript fetching and search
 - [ffmpeg](https://ffmpeg.org/) — only for the optional visual pass
 
-```sh
-brew install yt-dlp ffmpeg      # macOS
-```
+The scripts are standard-library-only Python; there is nothing to `pip install` for the skill itself.
 
 ## Install
 
+### macOS
+
 ```sh
+brew install yt-dlp ffmpeg
 git clone https://github.com/EftikharAzim/youtube-to-skill ~/.claude/skills/youtube-to-skill
 ```
 
-Restart Claude Code. Verify the environment:
+### Linux
+
+Install ffmpeg from your distribution; install yt-dlp via pipx (distro packages of yt-dlp go stale quickly, and a stale yt-dlp stops working against YouTube):
+
+```sh
+# Debian/Ubuntu
+sudo apt install ffmpeg pipx && pipx install yt-dlp
+# Fedora (ffmpeg via RPM Fusion)
+sudo dnf install ffmpeg pipx && pipx install yt-dlp
+# Arch
+sudo pacman -S ffmpeg yt-dlp
+
+git clone https://github.com/EftikharAzim/youtube-to-skill ~/.claude/skills/youtube-to-skill
+```
+
+### Windows
+
+Claude Code on Windows runs shell commands through Git Bash, which this skill's commands are written for. Install the tools with winget (or scoop/choco), then clone into your profile:
+
+```powershell
+winget install yt-dlp.yt-dlp Gyan.FFmpeg
+git clone https://github.com/EftikharAzim/youtube-to-skill "$env:USERPROFILE\.claude\skills\youtube-to-skill"
+```
+
+Make sure `python3`, `yt-dlp`, and `ffmpeg` resolve inside Git Bash (`where yt-dlp` in a new terminal after install).
+
+### Verify (all platforms)
+
+Restart Claude Code, then:
 
 ```sh
 python3 ~/.claude/skills/youtube-to-skill/scripts/fetch_transcript.py --check
 python3 ~/.claude/skills/youtube-to-skill/scripts/extract_frames.py --check
 ```
+
+Developed on macOS. CI runs the environment checks and parser tests on Linux, macOS, and Windows; full conversions have only been exercised on macOS. Reports welcome.
 
 ## How it works
 
