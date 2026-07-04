@@ -19,3 +19,10 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
+
+---
+
+Portions of SKILL.md (generation workflow structure, output format, and
+quality rules) are adapted from book-to-skill
+(https://github.com/virgiliojr94/book-to-skill),
+Copyright (c) 2025 virgiliojr94, licensed under the MIT License.
