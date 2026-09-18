@@ -1,9 +1,9 @@
 ---
 name: youtube-to-skill
 description: "Watches YouTube videos and playlists (talks, lectures, courses, tutorials) by fetching transcripts via yt-dlp — answering questions about a video in-chat (Quick Watch), searching YouTube for videos on a topic, or converting videos into structured agent skills with frameworks, mental models, techniques, and anti-patterns. Use when the user shares a YouTube URL, asks what a video says or teaches, says 'watch/find videos about X', or wants a video/playlist turned into a reusable knowledge base or study skill."
+argument-hint: <youtube-url>... [skill-name-slug] | "find videos about <topic>"
 ---
 
-<!-- argument-hint: <youtube-url>... [skill-name-slug] | "find videos about <topic>" -->
 <!-- Script paths below are relative to this skill's directory. -->
 
 # YouTube-to-Skill Converter
@@ -117,6 +117,15 @@ python3 scripts/extract_frames.py "<url>" --workdir "${TMPDIR:-/tmp}/yt_skill_wo
 ```
 Requires ffmpeg (`--check` prints install hints). Produces `frames_<id>/f*.jpg` + `frames.json` (`[{file, t_seconds, ts}]`).
 
+**Run this as a plain blocking foreground call — never background it or poll for it.** A ~60–90min lecture download can take several minutes; that is normal, not stuck. Use a generous Bash timeout (≥480000ms). Agents that try to background/Monitor this call and check back later have been observed to give up and report "waiting for extraction" as their final answer without ever reading the frames — the extraction silently never gets used. If you're driving this yourself (not delegating to a subagent), the same rule applies to you.
+
+**Scaling to many videos (playlist/course) — the reliable pattern: main thread downloads, subagents only read.** Do NOT hand a subagent a task that includes running `extract_frames.py` itself — subagents reliably background the long download and stall (observed ~40–50% stall rate even when told not to; the instruction alone does not hold). Instead:
+1. **Main thread** extracts all videos' frames first — run each `extract_frames.py` yourself (a `run_in_background: true` Bash call per video is fine *here*, because you own the wait and will not give up on it; wait for each to finish and confirm `frames.json` is non-empty before proceeding). If a shell redirect writes into a subdir (`> dir/out.json`), `mkdir -p dir` first — the redirect is set up before the command runs and fails silently otherwise.
+2. **Then** dispatch one subagent per chapter whose task is ONLY *read the already-extracted frames at `<workdir>/frames_<id>/frames.json` and edit the chapter file* — explicitly tell it "frames are ALREADY EXTRACTED — do NOT download anything, do NOT run extract_frames.py." With no blocking download in the subagent, the stall disappears.
+This split is what makes a large visual pass finish; the one-agent-does-everything shape does not.
+
+The script now self-checks: it verifies the download's actual duration against yt-dlp's reported duration (retries once on a truncated download) and falls back to uniform time-sampling if scene-change detection returns suspiciously few/clustered frames (a real observed ffmpeg failure mode: firing near frame 0 then going silent for the rest of a long video). Its JSON output includes `"fallback_uniform_sampling": true/false` — if true, frames are evenly spaced rather than scene-triggered, which is fine but slightly more likely to land mid-transition; note it if quality looks off. If frame content still looks unrelated to the expected topic (wrong lecture, garbled), don't fabricate — say so in the chapter's Scope note and skip Code Examples/Reference Tables rather than inventing content from bad frames.
+
 Tuning:
 - Camera-cut-heavy videos (speaker ↔ slides) fire many duplicate scene changes — raise `--scene` to 0.4 if most frames are the speaker's face.
 - Dense screencasts (live coding) may need `--scene 0.2` and a higher `--max-frames`.
@@ -163,7 +172,11 @@ Derive `DEPTH`: only option 3 → `DEPTH=reference` (lean, fast-lookup chapters)
 
 Default slug: `yt-{speaker-lastname}-{core-concept}` (e.g. `yt-kleppmann-event-streams`); for channel courses `yt-{channel-or-course}-{topic}`. The `yt-` prefix groups video-derived skills in listings — drop it only if the user asks. If `SKILL_NAME` was provided, use it.
 
-`SKILLS_HOME` = the host agent's personal skill root (Claude Code: `~/.claude/skills`; project-local `.claude/skills` if the user asks). **Do NOT nest generated skills in a subfolder** (e.g. `~/.claude/skills/youtube-skills/<name>/`) — Claude Code only discovers skills one level deep, so nested skills silently never load.
+`SKILLS_HOME` defaults to the cross-agent personal skill root `~/.agents/skills`. For a
+project-local skill, use `.agents/skills` for Codex or `.claude/skills` for Claude Code; ask which
+host should load it if the user did not specify. **Do NOT nest generated skills in another
+subfolder** (for example, `~/.agents/skills/youtube-skills/<name>/`) because hosts discover skill
+folders directly under their configured skill root.
 
 If `$SKILLS_HOME/<skill_name>/` exists, ask: Update/Fold-in (Mode 4), Overwrite, or Rename.
 
